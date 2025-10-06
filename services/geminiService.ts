@@ -15,7 +15,7 @@ const fileToBase64 = (file: File): Promise<string> => {
 export const generateImageVariations = async (
   imageFile: File | null,
   prompts: string[],
-  referenceImageFile: File | null,
+  referenceImageFiles: File[],
   aspectRatio: string
 ): Promise<GeneratedImage[]> => {
   // Text-to-Image generation if no main image is provided
@@ -57,11 +57,6 @@ export const generateImageVariations = async (
   const base64ImageData = await fileToBase64(imageFile);
   const mimeType = imageFile.type;
 
-  let base64ReferenceImageData: string | null = null;
-  if (referenceImageFile) {
-    base64ReferenceImageData = await fileToBase64(referenceImageFile);
-  }
-
   const generationPromises = prompts.map(async (prompt) => {
     try {
       const imageParts = [
@@ -73,14 +68,20 @@ export const generateImageVariations = async (
         },
       ];
 
-      if (base64ReferenceImageData && referenceImageFile) {
-        imageParts.push({
-          inlineData: {
-            data: base64ReferenceImageData,
-            mimeType: referenceImageFile.type,
-          },
+      if (referenceImageFiles && referenceImageFiles.length > 0) {
+        const referenceImagePromises = referenceImageFiles.map(async (file) => {
+          const base64Data = await fileToBase64(file);
+          return {
+            inlineData: {
+              data: base64Data,
+              mimeType: file.type,
+            },
+          };
         });
+        const referenceImageParts = await Promise.all(referenceImagePromises);
+        imageParts.push(...referenceImageParts);
       }
+
 
       const parts = [...imageParts, { text: prompt }];
 

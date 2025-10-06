@@ -10,7 +10,7 @@ import { AspectRatioSelector } from './components/AspectRatioSelector';
 
 const App: React.FC = () => {
   const [image, setImage] = useState<ImageFile | null>(null);
-  const [referenceImage, setReferenceImage] = useState<ImageFile | null>(null);
+  const [referenceImages, setReferenceImages] = useState<ImageFile[]>([]);
   const [prompts, setPrompts] = useState<string[]>(['']);
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -26,20 +26,35 @@ const App: React.FC = () => {
     setGeneratedImages([]);
     setError(null);
   }, []);
+  
+  const handleImageRemove = useCallback(() => {
+    if (image) {
+      URL.revokeObjectURL(image.previewUrl);
+      setImage(null);
+    }
+    // Also clear reference images as they depend on the main image
+    referenceImages.forEach(refImg => URL.revokeObjectURL(refImg.previewUrl));
+    setReferenceImages([]);
+    setGeneratedImages([]); // And clear results
+    setError(null);
+  }, [image, referenceImages]);
 
-  const handleReferenceImageSelect = useCallback((file: File) => {
-    setReferenceImage({
+  const handleAddReferenceImage = useCallback((file: File) => {
+    setReferenceImages(prev => [...prev, {
       file,
       previewUrl: URL.createObjectURL(file),
-    });
+    }]);
   }, []);
 
-  const handleReferenceImageRemove = useCallback(() => {
-    if (referenceImage) {
-      URL.revokeObjectURL(referenceImage.previewUrl);
-    }
-    setReferenceImage(null);
-  }, [referenceImage]);
+  const handleRemoveReferenceImage = useCallback((indexToRemove: number) => {
+    setReferenceImages(prev => {
+        const imageToRemove = prev[indexToRemove];
+        if (imageToRemove) {
+            URL.revokeObjectURL(imageToRemove.previewUrl);
+        }
+        return prev.filter((_, index) => index !== indexToRemove);
+    });
+  }, []);
 
 
   const handleGenerateClick = async () => {
@@ -56,7 +71,7 @@ const App: React.FC = () => {
       const results = await generateImageVariations(
         image?.file ?? null,
         prompts.filter(p => p.trim() !== ''),
-        referenceImage?.file ?? null,
+        referenceImages.map(img => img.file),
         aspectRatio
       );
       setGeneratedImages(results);
@@ -86,12 +101,12 @@ const App: React.FC = () => {
           <main className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="flex flex-col p-6 bg-gray-800/50 rounded-xl border border-gray-700 shadow-2xl">
               <PromptManager prompts={prompts} setPrompts={setPrompts} hasImage={!!image} />
-              <ImageUploader onImageSelect={handleImageSelect} image={image} />
+              <ImageUploader onImageSelect={handleImageSelect} image={image} onImageRemove={handleImageRemove} />
               {image && (
                   <ReferenceImageUploader 
-                  onImageSelect={handleReferenceImageSelect}
-                  onImageRemove={handleReferenceImageRemove}
-                  image={referenceImage}
+                  onImageAdd={handleAddReferenceImage}
+                  onImageRemove={handleRemoveReferenceImage}
+                  images={referenceImages}
                   />
               )}
               <AspectRatioSelector 

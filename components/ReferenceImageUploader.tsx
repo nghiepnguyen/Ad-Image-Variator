@@ -1,23 +1,24 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef } from 'react';
 import type { ImageFile } from '../types';
 import { UploadIcon } from './icons/UploadIcon';
 import { TrashIcon } from './icons/TrashIcon';
 
 interface ReferenceImageUploaderProps {
-  onImageSelect: (file: File) => void;
-  onImageRemove: () => void;
-  image: ImageFile | null;
+  onImageAdd: (file: File) => void;
+  onImageRemove: (index: number) => void;
+  images: ImageFile[];
 }
 
-export const ReferenceImageUploader: React.FC<ReferenceImageUploaderProps> = ({ onImageSelect, onImageRemove, image }) => {
+export const ReferenceImageUploader: React.FC<ReferenceImageUploaderProps> = ({ onImageAdd, onImageRemove, images }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      onImageSelect(file);
+    const files = event.target.files;
+    if (files) {
+        for (const file of Array.from(files)) {
+            onImageAdd(file);
+        }
     }
-    // Reset file input to allow re-uploading the same file after removing it
     if(event.target) {
         event.target.value = '';
     }
@@ -27,47 +28,45 @@ export const ReferenceImageUploader: React.FC<ReferenceImageUploaderProps> = ({ 
     fileInputRef.current?.click();
   };
 
-  const handleRemoveClick = useCallback((e: React.MouseEvent) => {
-      e.stopPropagation();
-      onImageRemove();
-  }, [onImageRemove]);
-
   return (
     <div className="w-full mt-8">
-      <h2 className="text-xl font-semibold mb-3 text-cyan-300">3. Add Reference Image <span className="text-gray-400 text-base font-normal">(Optional)</span></h2>
-      <div
-        className="relative w-full h-48 border-2 border-dashed border-gray-600 rounded-lg flex items-center justify-center transition-colors duration-300 bg-gray-800/50"
-      >
-        <input
+      <h2 className="text-xl font-semibold mb-3 text-cyan-300">3. Add Reference Image(s) <span className="text-gray-400 text-base font-normal">(Optional)</span></h2>
+      <div className="bg-gray-800/50 p-3 rounded-lg border border-gray-700/60">
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+            {images.map((image, index) => (
+                <div key={`${image.file.name}-${index}`} className="relative group aspect-square">
+                <img
+                    src={image.previewUrl}
+                    alt={`Reference ${index + 1}`}
+                    className="w-full h-full object-cover rounded-md"
+                />
+                <button
+                    onClick={() => onImageRemove(index)}
+                    className="absolute top-1 right-1 p-1 bg-black/70 rounded-full text-white hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                    aria-label="Remove reference image"
+                >
+                    <TrashIcon className="w-4 h-4" />
+                </button>
+                </div>
+            ))}
+             <button
+                onClick={handleClick}
+                className="aspect-square border-2 border-dashed border-gray-600 rounded-md flex flex-col items-center justify-center text-gray-400 hover:border-cyan-400 hover:text-cyan-400 transition-colors"
+                aria-label="Add reference images"
+            >
+                <UploadIcon className="w-8 h-8" />
+                <span className="text-xs mt-1 font-medium">Add More</span>
+            </button>
+        </div>
+      </div>
+       <input
           type="file"
           ref={fileInputRef}
           onChange={handleFileChange}
           className="hidden"
           accept="image/png, image/jpeg, image/webp"
+          multiple
         />
-        {image ? (
-          <>
-            <img
-              src={image.previewUrl}
-              alt="Reference preview"
-              className="w-full h-full object-contain rounded-lg p-2"
-            />
-            <button
-                onClick={handleRemoveClick}
-                className="absolute top-2 right-2 p-2 bg-black/60 rounded-full text-white hover:bg-red-500/90 transition-all"
-                aria-label="Remove reference image"
-            >
-                <TrashIcon className="w-5 h-5" />
-            </button>
-          </>
-        ) : (
-          <div className="text-center text-gray-400 cursor-pointer hover:border-cyan-400 p-4 w-full h-full flex flex-col items-center justify-center" onClick={handleClick}>
-            <UploadIcon className="w-10 h-10 mx-auto mb-2" />
-            <p>Click to upload a reference</p>
-            <p className="text-sm">For style or content inspiration</p>
-          </div>
-        )}
-      </div>
     </div>
   );
 };
