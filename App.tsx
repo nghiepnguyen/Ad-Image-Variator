@@ -7,6 +7,23 @@ import { PromptManager } from './components/PromptManager';
 import { ResultsDisplay } from './components/ResultsDisplay';
 import { FullscreenViewer } from './components/FullscreenViewer';
 import { AspectRatioSelector } from './components/AspectRatioSelector';
+import { PromptOptions } from './components/PromptOptions';
+
+const dataURLtoFile = (dataurl: string, filename: string): File | null => {
+    const arr = dataurl.split(',');
+    if (arr.length < 2) return null;
+    const mimeMatch = arr[0].match(/:(.*?);/);
+    if (!mimeMatch) return null;
+    const mime = mimeMatch[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+};
+
 
 const App: React.FC = () => {
   const [image, setImage] = useState<ImageFile | null>(null);
@@ -17,6 +34,26 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [fullscreenImage, setFullscreenImage] = useState<GeneratedImage | null>(null);
   const [aspectRatio, setAspectRatio] = useState<string>('1:1');
+  const [promptOptions, setPromptOptions] = useState({
+    thinBorder: false,
+    transparentBg: false,
+    cuteStyle: false,
+    vectorStyle: false,
+  });
+
+  const PROMPT_OPTIONS_MAP = {
+    thinBorder: ', with a thin border around the image',
+    transparentBg: ', isolated on transparent background.',
+    cuteStyle: ', cute simple Flat 2D style',
+    vectorStyle: ', vector in icon style',
+  };
+
+  const handleOptionChange = (option: keyof typeof promptOptions) => {
+    setPromptOptions(prevOptions => ({
+      ...prevOptions,
+      [option]: !prevOptions[option],
+    }));
+  };
 
   const handleImageSelect = useCallback((file: File) => {
     setImage({
@@ -58,7 +95,8 @@ const App: React.FC = () => {
 
 
   const handleGenerateClick = async () => {
-    if (prompts.every(p => p.trim() === '')) {
+    const activePrompts = prompts.filter(p => p.trim() !== '');
+    if (activePrompts.length === 0) {
       setError('Please provide at least one prompt.');
       return;
     }
@@ -67,10 +105,27 @@ const App: React.FC = () => {
     setError(null);
     setGeneratedImages([]);
 
+    const finalPrompts = activePrompts.map(prompt => {
+      let finalPrompt = prompt.trim();
+      if (promptOptions.thinBorder) {
+          finalPrompt += PROMPT_OPTIONS_MAP.thinBorder;
+      }
+      if (promptOptions.transparentBg) {
+          finalPrompt += PROMPT_OPTIONS_MAP.transparentBg;
+      }
+      if (promptOptions.cuteStyle) {
+          finalPrompt += PROMPT_OPTIONS_MAP.cuteStyle;
+      }
+      if (promptOptions.vectorStyle) {
+          finalPrompt += PROMPT_OPTIONS_MAP.vectorStyle;
+      }
+      return finalPrompt;
+    });
+
     try {
       const results = await generateImageVariations(
         image?.file ?? null,
-        prompts.filter(p => p.trim() !== ''),
+        finalPrompts,
         referenceImages.map(img => img.file),
         aspectRatio
       );
@@ -83,6 +138,36 @@ const App: React.FC = () => {
     }
   };
   
+  const handleUseImageAsInput = useCallback(async (generatedImage: GeneratedImage) => {
+    const newFileName = `generated_${generatedImage.prompt.replace(/[^a-z0-9]/gi, '_').toLowerCase().slice(0, 20)}.png`;
+    const file = dataURLtoFile(generatedImage.imageUrl, newFileName);
+
+    if (!file) {
+      setError("Could not use this image as input.");
+      return;
+    }
+    
+    // Clean up old object URLs
+    if (image) {
+      URL.revokeObjectURL(image.previewUrl);
+    }
+    referenceImages.forEach(refImg => URL.revokeObjectURL(refImg.previewUrl));
+
+    // Set new image
+    setImage({
+      file,
+      previewUrl: URL.createObjectURL(file),
+    });
+
+    // Reset other states
+    setGeneratedImages([]);
+    setReferenceImages([]);
+    setError(null);
+    
+    // Scroll to top to see the new input image
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [image, referenceImages]);
+
   const canGenerate = prompts.some(p => p.trim() !== '') && !isLoading;
 
   return (
@@ -101,6 +186,7 @@ const App: React.FC = () => {
           <main className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="flex flex-col p-6 bg-gray-800/50 rounded-xl border border-gray-700 shadow-2xl">
               <PromptManager prompts={prompts} setPrompts={setPrompts} hasImage={!!image} />
+              <PromptOptions options={promptOptions} onOptionChange={handleOptionChange} />
               <ImageUploader onImageSelect={handleImageSelect} image={image} onImageRemove={handleImageRemove} />
               {image && (
                   <ReferenceImageUploader 
@@ -146,6 +232,7 @@ const App: React.FC = () => {
                   generatedImages={generatedImages}
                   isLoading={isLoading}
                   onImageSelect={setFullscreenImage}
+                  onUseAsInput={handleUseImageAsInput}
               />
             </div>
           </main>

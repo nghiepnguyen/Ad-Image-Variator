@@ -3,12 +3,14 @@ import React from 'react';
 import type { ImageFile, GeneratedImage } from '../types';
 import { DownloadIcon } from './icons/DownloadIcon';
 import { ExpandIcon } from './icons/ExpandIcon';
+import { SparklesIcon } from './icons/SparklesIcon';
 
 interface ResultsDisplayProps {
   originalImage: ImageFile | null;
   generatedImages: GeneratedImage[];
   isLoading: boolean;
   onImageSelect: (image: GeneratedImage) => void;
+  onUseAsInput: (image: GeneratedImage) => void;
 }
 
 interface ImageCardProps {
@@ -18,10 +20,11 @@ interface ImageCardProps {
     isError?: boolean;
     onDownload?: () => void;
     onQuickView?: () => void;
+    onUseAsInput?: () => void;
 }
 
-const ImageCard: React.FC<ImageCardProps> = ({ title, imageUrl, caption, isError = false, onDownload, onQuickView }) => (
-  <div className="group bg-gray-800 rounded-lg overflow-hidden shadow-lg border border-gray-700 transform hover:scale-105 transition-transform duration-300">
+const ImageCard: React.FC<ImageCardProps> = ({ title, imageUrl, caption, isError = false, onDownload, onQuickView, onUseAsInput }) => (
+  <div className="group bg-gray-800 rounded-lg overflow-hidden shadow-lg border border-gray-700 transform hover:scale-105 transition-transform duration-300 flex flex-col">
     <div className="p-3">
       <h3 className="font-semibold text-cyan-400 truncate">{title}</h3>
     </div>
@@ -57,16 +60,27 @@ const ImageCard: React.FC<ImageCardProps> = ({ title, imageUrl, caption, isError
         </>
       )}
     </div>
-    {caption && !isError && (
-      <div className="p-3 bg-gray-800/50">
-        <p className="text-sm text-gray-300 italic">"{caption}"</p>
-      </div>
+    {( (caption && !isError) || (!isError && onUseAsInput) ) && (
+        <div className="p-3 bg-gray-800/50 mt-auto">
+            {caption && !isError && (
+            <p className="text-sm text-gray-300 italic">"{caption}"</p>
+            )}
+            {!isError && onUseAsInput && (
+            <button
+                onClick={onUseAsInput}
+                className={`w-full flex items-center justify-center space-x-2 px-3 py-2 bg-cyan-700 hover:bg-cyan-600 rounded-md transition-colors text-sm font-semibold ${caption && !isError ? 'mt-3' : ''}`}
+            >
+                <SparklesIcon className="w-5 h-5" />
+                <span>Edit</span>
+            </button>
+            )}
+        </div>
     )}
   </div>
 );
 
 
-export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ originalImage, generatedImages, isLoading, onImageSelect }) => {
+export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ originalImage, generatedImages, isLoading, onImageSelect, onUseAsInput }) => {
     const handleDownload = (imageUrl: string, prompt: string) => {
         const link = document.createElement('a');
         link.href = imageUrl;
@@ -113,6 +127,7 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ originalImage, g
             isError={image.imageUrl === 'error'}
             onDownload={image.imageUrl !== 'error' ? () => handleDownload(image.imageUrl, image.prompt) : undefined}
             onQuickView={image.imageUrl !== 'error' ? () => onImageSelect(image) : undefined}
+            onUseAsInput={image.imageUrl !== 'error' ? () => onUseAsInput(image) : undefined}
           />
         ))}
       </div>

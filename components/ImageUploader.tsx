@@ -17,6 +17,10 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageSelect, ima
     if (file) {
       onImageSelect(file);
     }
+    // Reset the input value to allow re-selecting the same file
+    if (event.target) {
+        event.target.value = '';
+    }
   };
 
   const handleClick = () => {
@@ -30,7 +34,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageSelect, ima
 
   return (
     <div className="w-full mt-8">
-      <h2 className="text-xl font-semibold mb-3 text-cyan-300">2. Start with an Image <span className="text-gray-400 text-base font-normal">(Optional)</span></h2>
+      <h2 className="text-xl font-semibold mb-3 text-cyan-300">3. Start with an Image <span className="text-gray-400 text-base font-normal">(Optional)</span></h2>
       <div
         className="group relative w-full h-64 border-2 border-dashed border-gray-600 rounded-lg flex items-center justify-center cursor-pointer hover:border-cyan-400 transition-colors duration-300 bg-gray-800/50"
         onClick={handleClick}

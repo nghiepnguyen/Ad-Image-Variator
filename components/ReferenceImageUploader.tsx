@@ -30,7 +30,7 @@ export const ReferenceImageUploader: React.FC<ReferenceImageUploaderProps> = ({ 
 
   return (
     <div className="w-full mt-8">
-      <h2 className="text-xl font-semibold mb-3 text-cyan-300">3. Add Reference Image(s) <span className="text-gray-400 text-base font-normal">(Optional)</span></h2>
+      <h2 className="text-xl font-semibold mb-3 text-cyan-300">4. Add Reference Image(s) <span className="text-gray-400 text-base font-normal">(Optional)</span></h2>
       <div className="bg-gray-800/50 p-3 rounded-lg border border-gray-700/60">
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
             {images.map((image, index) => (

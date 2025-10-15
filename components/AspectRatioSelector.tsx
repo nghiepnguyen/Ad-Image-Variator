@@ -12,7 +12,7 @@ const aspectRatios = ["1:1", "16:9", "9:16", "4:3", "3:4"];
 export const AspectRatioSelector: React.FC<AspectRatioSelectorProps> = ({ aspectRatio, setAspectRatio, isDisabled, hasImage }) => {
   return (
     <div className="w-full mt-8">
-      <h2 className="text-xl font-semibold mb-1 text-cyan-300">{hasImage ? '4. Aspect Ratio' : '3. Aspect Ratio'}</h2>
+      <h2 className="text-xl font-semibold mb-1 text-cyan-300">{hasImage ? '5. Aspect Ratio' : '4. Aspect Ratio'}</h2>
       {isDisabled && (
           <p className="text-sm text-gray-400 mb-3">Locked to match uploaded image dimensions.</p>
       )}
